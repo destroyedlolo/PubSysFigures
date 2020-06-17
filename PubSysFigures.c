@@ -64,6 +64,7 @@ struct Config {
 	char *id;
 	char *topic;
 	bool verbose;
+	int sample;
 
 	MQTTClient client;
 	const char *hostname;
@@ -113,9 +114,10 @@ int main(int ac, char **av){
 	cfg.verbose = false;
 	cfg.id = NULL;
 	cfg.topic = NULL;
+	cfg.sample = 60;
+
 	MQTTClient_connectOptions conn_opts = MQTTClient_connectOptions_initializer;
 	conn_opts.reliable = 0;
-
 	char l[MAXLINE], *param;
 	FILE *f;
 	int i;
@@ -131,6 +133,7 @@ int main(int ac, char **av){
 					"\t-p : MQTT server port number (default 1883)\n"
 					"\t-i : MQTT client identifier (default \"psf_<hostname>\")\n"
 					"\t-t : MQTT topic root (default \"Machines/<hostname>\")\n"
+					"\t-s : delay between sample (default 60s)\n"
 					"\t-v : verbose mode\n",
 					basename(av[0]), VERSION
 				);
@@ -143,6 +146,8 @@ int main(int ac, char **av){
 				cfg.id = av[i] + 2;
 			else if(!strncmp(av[i], "-t", 2))
 				cfg.topic = av[i] + 2;
+			else if(!strncmp(av[i], "-s", 2))
+				cfg.sample = atoi(av[i] + 2);
 			else if(!strncmp(av[i], "-v", 2))
 				cfg.verbose = true;
 		}
@@ -167,6 +172,7 @@ int main(int ac, char **av){
 	if(cfg.verbose){
 		printf("*I* Broker = \"%s\" port = %d\n", cfg.hostname, cfg.Broker_Port);
 		printf("*I* Hostname = \"%s\"\n", cfg.hostname);
+		printf("*I* Delay b/w samples = %d\n", cfg.sample);
 	}
 
 	if(!cfg.id){
@@ -225,27 +231,31 @@ int main(int ac, char **av){
 	sprintf( param, "%d", i);
 	papub( l, strlen(param), param, true );
 
-	if(!(f=fopen("/proc/loadavg", "r"))){
-		perror("/proc/loadavg");
-		exit(EXIT_FAILURE);
+	for(;;){
+		if(!(f=fopen("/proc/loadavg", "r"))){
+			perror("/proc/loadavg");
+			exit(EXIT_FAILURE);
+		}
+		float r1,r5,r10;
+		fscanf(f, "%f %f %f", &r1, &r5, &r10);
+		fclose(f);
+		if(cfg.verbose)
+			printf("*I* loadav = %.2f %.2f %.2f\n", r1, r5, r10);
+		sprintf( l, "%s/Load/1", cfg.topic);
+		param = l + strlen(l) + 2;
+		sprintf( param, "%.2f", r1);
+		papub( l, strlen(param), param, true );
+		sprintf( l, "%s/Load/5", cfg.topic);
+		param = l + strlen(l) + 2;
+		sprintf( param, "%.2f", r5);
+		papub( l, strlen(param), param, true );
+		sprintf( l, "%s/Load/10", cfg.topic);
+		param = l + strlen(l) + 2;
+		sprintf( param, "%.2f", r10);
+		papub( l, strlen(param), param, true );
+
+		sleep( cfg.sample );
 	}
-	float r1,r5,r10;
-	fscanf(f, "%f %f %f", &r1, &r5, &r10);
-	fclose(f);
-	if(cfg.verbose)
-		printf("*I* loadav = %.2f %.2f %.2f\n", r1, r5, r10);
-	sprintf( l, "%s/Load/1", cfg.topic);
-	param = l + strlen(l) + 2;
-	sprintf( param, "%.2f", r1);
-	papub( l, strlen(param), param, true );
-	sprintf( l, "%s/Load/5", cfg.topic);
-	param = l + strlen(l) + 2;
-	sprintf( param, "%.2f", r5);
-	papub( l, strlen(param), param, true );
-	sprintf( l, "%s/Load/10", cfg.topic);
-	param = l + strlen(l) + 2;
-	sprintf( param, "%.2f", r10);
-	papub( l, strlen(param), param, true );
 	
 	exit(EXIT_SUCCESS);
 }
