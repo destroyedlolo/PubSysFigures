@@ -244,15 +244,15 @@ int main(int ac, char **av){
 		sprintf( l, "%s/Load/1", cfg.topic);
 		param = l + strlen(l) + 2;
 		sprintf( param, "%.2f", r1);
-		papub( l, strlen(param), param, true );
+		papub( l, strlen(param), param, false );
 		sprintf( l, "%s/Load/5", cfg.topic);
 		param = l + strlen(l) + 2;
 		sprintf( param, "%.2f", r5);
-		papub( l, strlen(param), param, true );
+		papub( l, strlen(param), param, false );
 		sprintf( l, "%s/Load/10", cfg.topic);
 		param = l + strlen(l) + 2;
 		sprintf( param, "%.2f", r10);
-		papub( l, strlen(param), param, true );
+		papub( l, strlen(param), param, false );
 
 		sleep( cfg.sample );
 	}
