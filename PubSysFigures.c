@@ -20,6 +20,7 @@ gcc -lpaho-mqtt3c -Wall PubSysFigures.c -o PubSysFigures
  *
  *	16/06/2020 - v0.1 LF - Start of development
  *	17/06/2020 - v1.0 LF - First workable version
+ *	20/06/2020 - v1.1 LF - Use '/sys/devices/system/cpu/present'
  */
 
 #include <stdio.h>
@@ -209,7 +210,7 @@ int main(int ac, char **av){
 	case 5 : fputs("Unable to connect : Not authorized\n", stderr);
 		exit(EXIT_FAILURE);
 	default :
-		fputs("Unable to connect : Unknown version\n", stderr);
+		fputs("Unable to connect\n", stderr);
 		exit(EXIT_FAILURE);
 	}
 	atexit(theend);
@@ -217,11 +218,11 @@ int main(int ac, char **av){
 	/*
 	 * Publish statics'
 	 */
-	if(!(f=fopen("/sys/devices/system/cpu/kernel_max", "r"))){
-		perror("/sys/devices/system/cpu/kernel_max");
+	if(!(f=fopen("/sys/devices/system/cpu/present", "r"))){
+		perror("/sys/devices/system/cpu/present");
 		exit(EXIT_FAILURE);
 	}
-	fscanf(f, "%d", &i);
+	fscanf(f, "0-%d", &i);
 	i++;
 	fclose(f);
 	if(cfg.verbose)

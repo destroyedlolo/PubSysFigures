@@ -1,0 +1,35 @@
+#!/sbin/openrc-run
+# Copyright 1999-2016 Gentoo Foundation
+# Distributed under the terms of the GNU General Public License, v2 or later
+#
+# INSTALL
+# -------
+# copy this file as /etc/init.d/PubSysFigures
+# add it to needed runlevel
+# in /etc/conf.d/PubSysFigures put opts as 
+#	PSF_OPTS="-Hmybrockerhost.fqdn"
+
+INSTANCE=${SVCNAME#*.}
+PROGRAM=${SVCNAME%%.*}
+PIDFILE=${PIDFILE:-/run/${PROGRAM}.pid}
+
+depend() {
+	need net
+}
+
+
+start() {
+	ebegin "Starting ${SVCNAME}"
+set -x
+	start-stop-daemon --start --exec /usr/local/sbin/${PROGRAM} \
+		--background --make-pidfile --pidfile ${PIDFILE} -- ${PSF_OPTS}
+set +x
+	eend $?
+}
+
+stop() {
+	ebegin "Stopping ${SVCNAME}"
+	start-stop-daemon --stop --exec /usr/local/sbin/${PROGRAM} \
+		--pidfile ${PIDFILE}
+	eend $?
+}
