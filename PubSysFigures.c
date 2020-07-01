@@ -21,6 +21,7 @@ gcc -lpaho-mqtt3c -Wall PubSysFigures.c -o PubSysFigures
  *	16/06/2020 - v0.1 LF - Start of development
  *	17/06/2020 - v1.0 LF - First workable version
  *	20/06/2020 - v1.1 LF - Use '/sys/devices/system/cpu/present'
+ *	01/07/2020 - V1.2 LF - Correcting clientID (arg !)
  */
 
 #include <stdio.h>
@@ -193,7 +194,7 @@ int main(int ac, char **av){
 	if(cfg.verbose)
 		printf("*I* Topics' root = \"%s\"\n", cfg.topic);
 
-	MQTTClient_create( &cfg.client, cfg.Broker_Host, "TeleInfod", MQTTCLIENT_PERSISTENCE_NONE, NULL);
+	MQTTClient_create( &cfg.client, cfg.Broker_Host, cfg.id, MQTTCLIENT_PERSISTENCE_NONE, NULL);
 	MQTTClient_setCallbacks( cfg.client, NULL, connlost, msgarrived, NULL);
 
 	switch( MQTTClient_connect( cfg.client, &conn_opts) ){
