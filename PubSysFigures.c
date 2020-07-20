@@ -22,6 +22,7 @@ gcc -lpaho-mqtt3c -Wall PubSysFigures.c -o PubSysFigures
  *	17/06/2020 - v1.0 LF - First workable version
  *	20/06/2020 - v1.1 LF - Use '/sys/devices/system/cpu/present'
  *	01/07/2020 - V1.2 LF - Correcting clientID (arg !)
+ *	20/07/2020 - v1.3 LF - Add grace period
  */
 
 #include <stdio.h>
@@ -36,7 +37,7 @@ gcc -lpaho-mqtt3c -Wall PubSysFigures.c -o PubSysFigures
 
 #include <MQTTClient.h>
 
-#define VERSION "1.0"
+#define VERSION "1.3"
 
 #define MAXLINE 1024	/* Maximum length of a line to be read */
 #define BRK_KEEPALIVE 60	/* Keep alive signal to the broker */
@@ -67,6 +68,7 @@ struct Config {
 	char *topic;
 	bool verbose;
 	int sample;
+	int grace;
 
 	MQTTClient client;
 	const char *hostname;
@@ -117,6 +119,7 @@ int main(int ac, char **av){
 	cfg.id = NULL;
 	cfg.topic = NULL;
 	cfg.sample = 60;
+	cfg.grace = 0;
 
 	MQTTClient_connectOptions conn_opts = MQTTClient_connectOptions_initializer;
 	conn_opts.reliable = 0;
@@ -136,6 +139,7 @@ int main(int ac, char **av){
 					"\t-i : MQTT client identifier (default \"psf_<hostname>\")\n"
 					"\t-t : MQTT topic root (default \"Machines/<hostname>\")\n"
 					"\t-s : delay between sample (default 60s)\n"
+					"\t-g : grace periode before broker connected (default : none)\n" 
 					"\t-v : verbose mode\n",
 					basename(av[0]), VERSION
 				);
@@ -150,6 +154,8 @@ int main(int ac, char **av){
 				cfg.topic = av[i] + 2;
 			else if(!strncmp(av[i], "-s", 2))
 				cfg.sample = atoi(av[i] + 2);
+			else if(!strncmp(av[i], "-g", 2))
+				cfg.grace = atoi(av[i] + 2);
 			else if(!strncmp(av[i], "-v", 2))
 				cfg.verbose = true;
 		}
@@ -175,6 +181,7 @@ int main(int ac, char **av){
 		printf("*I* Broker = \"%s\" port = %d\n", cfg.hostname, cfg.Broker_Port);
 		printf("*I* Hostname = \"%s\"\n", cfg.hostname);
 		printf("*I* Delay b/w samples = %d\n", cfg.sample);
+		printf("*I* grace period = %ds\n", cfg.grace);
 	}
 
 	if(!cfg.id){
@@ -197,23 +204,31 @@ int main(int ac, char **av){
 	MQTTClient_create( &cfg.client, cfg.Broker_Host, cfg.id, MQTTCLIENT_PERSISTENCE_NONE, NULL);
 	MQTTClient_setCallbacks( cfg.client, NULL, connlost, msgarrived, NULL);
 
-	switch( MQTTClient_connect( cfg.client, &conn_opts) ){
-	case MQTTCLIENT_SUCCESS : 
-		break;
-	case 1 : fputs("Unable to connect : Unacceptable protocol version\n", stderr);
+	i = 0;
+	do {
+		switch( MQTTClient_connect( cfg.client, &conn_opts) ){
+		case MQTTCLIENT_SUCCESS : 
+			i = 1;
+			break;
+		case 1 : fputs("Unable to connect : Unacceptable protocol version\n", stderr);
+			exit(EXIT_FAILURE);
+		case 2 : fputs("Unable to connect : Identifier rejected\n", stderr);
+			exit(EXIT_FAILURE);
+		case 3 : fputs("Unable to connect : Server unavailable\n", stderr);
+			exit(EXIT_FAILURE);
+		case 4 : fputs("Unable to connect : Bad user name or password\n", stderr);
+			exit(EXIT_FAILURE);
+		case 5 : fputs("Unable to connect : Not authorized\n", stderr);
+			exit(EXIT_FAILURE);
+		default :
+			fprintf(stderr, "Unable to connect (%d)\n", cfg.grace);
+			sleep(1);
+		}
+	} while( --cfg.grace && !i );
+
+	if( !cfg.grace && !i )
 		exit(EXIT_FAILURE);
-	case 2 : fputs("Unable to connect : Identifier rejected\n", stderr);
-		exit(EXIT_FAILURE);
-	case 3 : fputs("Unable to connect : Server unavailable\n", stderr);
-		exit(EXIT_FAILURE);
-	case 4 : fputs("Unable to connect : Bad user name or password\n", stderr);
-		exit(EXIT_FAILURE);
-	case 5 : fputs("Unable to connect : Not authorized\n", stderr);
-		exit(EXIT_FAILURE);
-	default :
-		fputs("Unable to connect\n", stderr);
-		exit(EXIT_FAILURE);
-	}
+
 	atexit(theend);
 
 	/*
