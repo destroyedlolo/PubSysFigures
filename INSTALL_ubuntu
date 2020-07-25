@@ -9,5 +9,5 @@ sudo make install
 cd /tmp
 git clone https://github.com/destroyedlolo/PubSysFigures.git
 cd PubSysFigures
-make
+gcc -Wall PubSysFigures.c -lpaho-mqtt3c -o PubSysFigures
 sudo cp PubSysFigures /usr/local/sbin
