@@ -4,7 +4,7 @@
  *
  * 	Compilation
  *
-gcc -lpaho-mqtt3c -Wall PubSysFigures.c -o PubSysFigures
+gcc -Wall PubSysFigures.c -lpaho-mqtt3c -o PubSysFigures
  *
  * Copyright 2015 Laurent Faillie
  *
