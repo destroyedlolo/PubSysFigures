@@ -36,6 +36,6 @@ And finally
 
 ```
 sudo systemctl daemon-reload
-sudo update-rc.d PubSysFigures defaults
+sudo systemctl enable PubSysFigures
 sudo service PubSysFigures start
 ```
