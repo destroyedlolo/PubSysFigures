@@ -7,7 +7,7 @@
 # copy this file as /etc/init.d/PubSysFigures
 # add it to needed runlevel
 # in /etc/conf.d/PubSysFigures put opts as 
-#	PSF_OPTS="-Hmybrockerhost.fqdn"
+#	PSF_OPTS="-Hmybrockerhost.fqdn -s30 -g120"
 
 INSTANCE=${SVCNAME#*.}
 PROGRAM=${SVCNAME%%.*}
