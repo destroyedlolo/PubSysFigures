@@ -6,9 +6,9 @@
  *
 gcc -Wall PubSysFigures.c -lpaho-mqtt3c -o PubSysFigures
  *
- * Copyright 2015 Laurent Faillie
+ * Copyright 2020 Laurent Faillie
  *
- *			TeleInfod is covered by 
+ *			PubSysFigures is covered by 
  *		Creative Commons Attribution-NonCommercial 3.0 License
  *		(http://creativecommons.org/licenses/by-nc/3.0/) 
  *		Consequently, you're free to use if for personal or non-profit usage,
