@@ -14,7 +14,7 @@ gcc -Wall PubSysFigures.c -lpaho-mqtt3c -o PubSysFigures
  *		Consequently, you're free to use if for personal or non-profit usage,
  *		professional or commercial usage REQUIRES a commercial licence.
  *
- *		TeleInfod is distributed in the hope that it will be useful,
+ *		PubSysFigures is distributed in the hope that it will be useful,
  *		but WITHOUT ANY WARRANTY; without even the implied warranty of
  *		MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  *
