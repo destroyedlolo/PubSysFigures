@@ -20,10 +20,8 @@ depend() {
 
 start() {
 	ebegin "Starting ${SVCNAME}"
-set -x
 	start-stop-daemon --start --exec /usr/local/sbin/${PROGRAM} \
 		--background --make-pidfile --pidfile ${PIDFILE} -- ${PSF_OPTS}
-set +x
 	eend $?
 }
 
