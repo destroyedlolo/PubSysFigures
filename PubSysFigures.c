@@ -4,7 +4,7 @@
  *
  * 	Compilation
  *
-gcc -Wall PubSysFigures.c -lpaho-mqtt3c -o PubSysFigures
+gcc -lpaho-mqtt3c -Wall PubSysFigures.c -o PubSysFigures
  *
  * Copyright 2020 Laurent Faillie
  *
@@ -14,7 +14,7 @@ gcc -Wall PubSysFigures.c -lpaho-mqtt3c -o PubSysFigures
  *		Consequently, you're free to use if for personal or non-profit usage,
  *		professional or commercial usage REQUIRES a commercial licence.
  *
- *		PubSysFigures is distributed in the hope that it will be useful,
+ *		TeleInfod is distributed in the hope that it will be useful,
  *		but WITHOUT ANY WARRANTY; without even the implied warranty of
  *		MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  *
@@ -23,6 +23,7 @@ gcc -Wall PubSysFigures.c -lpaho-mqtt3c -o PubSysFigures
  *	20/06/2020 - v1.1 LF - Use '/sys/devices/system/cpu/present'
  *	01/07/2020 - V1.2 LF - Correcting clientID (arg !)
  *	20/07/2020 - v1.3 LF - Add grace period
+ *	11/11/2021 - v1.4 LF - Add automatic reconnect
  */
 
 #include <stdio.h>
@@ -37,7 +38,7 @@ gcc -Wall PubSysFigures.c -lpaho-mqtt3c -o PubSysFigures
 
 #include <MQTTClient.h>
 
-#define VERSION "1.3"
+#define VERSION "1.4"
 
 #define MAXLINE 1024	/* Maximum length of a line to be read */
 #define BRK_KEEPALIVE 60	/* Keep alive signal to the broker */
@@ -69,6 +70,7 @@ struct Config {
 	bool verbose;
 	int sample;
 	int grace;
+	int reconnect;
 
 	MQTTClient client;
 	const char *hostname;
@@ -120,6 +122,7 @@ int main(int ac, char **av){
 	cfg.topic = NULL;
 	cfg.sample = 60;
 	cfg.grace = 0;
+	cfg.reconnect = 0;
 
 	MQTTClient_connectOptions conn_opts = MQTTClient_connectOptions_initializer;
 	conn_opts.reliable = 0;
@@ -139,7 +142,8 @@ int main(int ac, char **av){
 					"\t-i : MQTT client identifier (default \"psf_<hostname>\")\n"
 					"\t-t : MQTT topic root (default \"Machines/<hostname>\")\n"
 					"\t-s : delay between sample (default 60s)\n"
-					"\t-g : grace periode before broker connected (default : none)\n" 
+					"\t-g : grace period before broker connected (default : none)\n" 
+					"\t-r : automatically reconnect (the argument is the delay b/w retries)\n"
 					"\t-v : verbose mode\n",
 					basename(av[0]), VERSION
 				);
@@ -156,6 +160,8 @@ int main(int ac, char **av){
 				cfg.sample = atoi(av[i] + 2);
 			else if(!strncmp(av[i], "-g", 2))
 				cfg.grace = atoi(av[i] + 2);
+			else if(!strncmp(av[i], "-r", 2))
+				cfg.reconnect = atoi(av[i] + 2);
 			else if(!strncmp(av[i], "-v", 2))
 				cfg.verbose = true;
 		}
@@ -181,7 +187,9 @@ int main(int ac, char **av){
 		printf("*I* Broker = \"%s\" port = %d\n", cfg.hostname, cfg.Broker_Port);
 		printf("*I* Hostname = \"%s\"\n", cfg.hostname);
 		printf("*I* Delay b/w samples = %d\n", cfg.sample);
-		printf("*I* grace period = %ds\n", cfg.grace);
+		printf("*I* Grace period = %ds\n", cfg.grace);
+		printf("*I* Reconnect = %ds\n", cfg.reconnect);
+exit(0);
 	}
 
 	if(!cfg.id){
@@ -206,7 +214,8 @@ int main(int ac, char **av){
 
 	i = 0;
 	do {
-		switch( MQTTClient_connect( cfg.client, &conn_opts) ){
+		int nerr;
+		switch( (nerr = MQTTClient_connect( cfg.client, &conn_opts)) ){
 		case MQTTCLIENT_SUCCESS : 
 			i = 1;
 			break;
@@ -221,7 +230,7 @@ int main(int ac, char **av){
 		case 5 : fputs("Unable to connect : Not authorized\n", stderr);
 			exit(EXIT_FAILURE);
 		default :
-			fprintf(stderr, "Unable to connect (%d)\n", cfg.grace);
+			fprintf(stderr, "Unable to connect - err: %d (%d)\n", nerr, cfg.grace);
 			sleep(1);
 		}
 	} while( --cfg.grace && !i );
