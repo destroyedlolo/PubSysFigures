@@ -17,7 +17,7 @@ These topics are published once at daemon starting with the hardware configurati
 * **.../memoryPRC** : Persentage of used memory
 
 * **.../swap** : free / total swap (in KB)
-* **.../swapPRC** : Persentage of used memory
+* **.../swapPRC** : Persentage of used swap
 
 # command line arguments
 
