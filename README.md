@@ -13,6 +13,12 @@ These topics are published once at daemon starting with the hardware configurati
 * **.../Load/5** : loadaverage at 5 minutes
 * **.../Load/10** : loadaverage at 10 minutes
 
+* **.../memory** : free / total memory (in KB)
+* **.../memoryPRC** : Persentage of used memory
+
+* **.../swap** : free / total swap (in KB)
+* **.../swapPRC** : Persentage of used memory
+
 # command line arguments
 
 **PubSysFigures** accepts options from it's command line.
