@@ -6,7 +6,7 @@
  *
 gcc -Wall PubSysFigures.c -lpaho-mqtt3c -o PubSysFigures
  *
- * Copyright 2020 Laurent Faillie
+ * Copyright 2020-25 Laurent Faillie
  *
  *			PubSysFigures is covered by 
  *		Creative Commons Attribution-NonCommercial 3.0 License
@@ -23,6 +23,7 @@ gcc -Wall PubSysFigures.c -lpaho-mqtt3c -o PubSysFigures
  *	20/06/2020 - v1.1 LF - Use '/sys/devices/system/cpu/present'
  *	01/07/2020 - V1.2 LF - Correcting clientID (arg !)
  *	20/07/2020 - v1.3 LF - Add grace period
+ *	02/06/2025 - v1.5 LF - Add memory
  */
 
 #include <stdio.h>
@@ -37,7 +38,7 @@ gcc -Wall PubSysFigures.c -lpaho-mqtt3c -o PubSysFigures
 
 #include <MQTTClient.h>
 
-#define VERSION "1.3"
+#define VERSION "1.5"
 
 #define MAXLINE 1024	/* Maximum length of a line to be read */
 #define BRK_KEEPALIVE 60	/* Keep alive signal to the broker */
@@ -56,6 +57,13 @@ char *removeLF(char *s){
 	return s;
 }
 
+const char *strKWcmp(const char *s, const char *kw){
+	size_t klen = strlen(kw);
+	if( strncmp(s,kw,klen) )
+		return NULL;
+	else
+		return s+klen;
+}
 
 	/*
 	 * Let's go
@@ -258,6 +266,7 @@ int main(int ac, char **av){
 		fclose(f);
 		if(cfg.verbose)
 			printf("*I* loadav = %.2f %.2f %.2f\n", r1, r5, r10);
+
 		sprintf( l, "%s/Load/1", cfg.topic);
 		param = l + strlen(l) + 2;
 		sprintf( param, "%.2f", r1);
@@ -270,6 +279,48 @@ int main(int ac, char **av){
 		param = l + strlen(l) + 2;
 		sprintf( param, "%.2f", r10);
 		papub( l, strlen(param), param, false );
+
+		unsigned long long mem_total = 0, mem_free = 0, swap_total = 0, swap_free = 0;
+		if(!(f=fopen("/proc/meminfo", "r"))){
+			perror("/proc/meminfo");
+			exit(EXIT_FAILURE);
+		}
+		while(fgets(l, sizeof(l), f)){
+			const char *val;
+			if((val = strKWcmp(l, "MemTotal:"))){
+				mem_total = strtoull(val, NULL, 10);
+			} else if((val = strKWcmp(l, "MemFree:")))
+				mem_free = strtoull(val, NULL, 10);
+			else if((val = strKWcmp(l, "SwapTotal:")))
+				swap_total = strtoull(val, NULL, 10);
+			else if((val = strKWcmp(l, "SwapFree:")))
+				swap_free = strtoull(val, NULL, 10);
+		}
+		fclose(f);
+		if(cfg.verbose)
+			printf("*I* mem = %llu / %llu swap = %llu / %llu\n", mem_free, mem_total, swap_free, swap_total);
+
+		sprintf( l, "%s/memory", cfg.topic);
+		param = l + strlen(l) + 2;
+		sprintf( param, "%llu/%llu", mem_free, mem_total);
+		papub( l, strlen(param), param, false );
+		if(mem_total){
+			sprintf( l, "%s/memoryPRC", cfg.topic);
+			param = l + strlen(l) + 2;
+			sprintf( param, "%.2f", 100-mem_free*100.0/mem_total);
+			papub( l, strlen(param), param, false );
+		}
+
+		sprintf( l, "%s/swap", cfg.topic);
+		param = l + strlen(l) + 2;
+		sprintf( param, "%llu/%llu", swap_free, swap_total);
+		papub( l, strlen(param), param, false );
+		if(swap_total){
+			sprintf( l, "%s/swapPRC", cfg.topic);
+			param = l + strlen(l) + 2;
+			sprintf( param, "%.2f", 100-swap_free*100.0/swap_total);
+			papub( l, strlen(param), param, false );
+		}
 
 		sleep( cfg.sample );
 	}
