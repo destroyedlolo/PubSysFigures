@@ -24,6 +24,7 @@ gcc -Wall PubSysFigures.c -lpaho-mqtt3c -o PubSysFigures
  *	01/07/2020 - V1.2 LF - Correcting clientID (arg !)
  *	20/07/2020 - v1.3 LF - Add grace period
  *	02/06/2025 - v1.5 LF - Add memory
+ *	11/06/2025 - v1.6 LF - Add user memory as well
  */
 
 #include <stdio.h>
@@ -38,7 +39,7 @@ gcc -Wall PubSysFigures.c -lpaho-mqtt3c -o PubSysFigures
 
 #include <MQTTClient.h>
 
-#define VERSION "1.5"
+#define VERSION "1.6"
 
 #define MAXLINE 1024	/* Maximum length of a line to be read */
 #define BRK_KEEPALIVE 60	/* Keep alive signal to the broker */
@@ -280,7 +281,10 @@ int main(int ac, char **av){
 		sprintf( param, "%.2f", r10);
 		papub( l, strlen(param), param, false );
 
-		unsigned long long mem_total = 0, mem_free = 0, swap_total = 0, swap_free = 0;
+		unsigned long long mem_total = 0, mem_free = 0, 
+			swap_total = 0, swap_free = 0,
+			buffers = 0, cached = 0;
+			
 		if(!(f=fopen("/proc/meminfo", "r"))){
 			perror("/proc/meminfo");
 			exit(EXIT_FAILURE);
@@ -295,11 +299,22 @@ int main(int ac, char **av){
 				swap_total = strtoull(val, NULL, 10);
 			else if((val = strKWcmp(l, "SwapFree:")))
 				swap_free = strtoull(val, NULL, 10);
+			else if((val = strKWcmp(l, "Buffers:")))
+				buffers = strtoull(val, NULL, 10);
+			else if((val = strKWcmp(l, "Cached:")))
+				cached = strtoull(val, NULL, 10);
 		}
 		fclose(f);
-		if(cfg.verbose)
-			printf("*I* mem = %llu / %llu swap = %llu / %llu\n", mem_free, mem_total, swap_free, swap_total);
 
+		float user = 100.0 - (100.0*(mem_free + buffers + cached))/mem_total;
+
+		if(cfg.verbose)
+			printf("*I* user = %.2f%% mem = %llu / %llu swap = %llu / %llu\n", user, mem_free, mem_total, swap_free, swap_total);
+
+		sprintf( l, "%s/userPRC", cfg.topic);
+		param = l + strlen(l) + 2;
+		sprintf( param, "%.2f", user);
+		papub( l, strlen(param), param, false );
 		sprintf( l, "%s/memory", cfg.topic);
 		param = l + strlen(l) + 2;
 		sprintf( param, "%llu/%llu", mem_free, mem_total);
