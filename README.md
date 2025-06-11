@@ -19,6 +19,8 @@ These topics are published once at daemon starting with the hardware configurati
 * **.../swap** : free / total swap (in KB)
 * **.../swapPRC** : Persentage of used swap
 
+* **.../userPRC** : User memory percentage
+
 # command line arguments
 
 **PubSysFigures** accepts options from it's command line.
